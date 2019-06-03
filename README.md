@@ -101,7 +101,7 @@ diagram.
 
 <div class="image">
 
-![ServoTesterAufbau.jpg](ServoTesterAufbau.jpg)
+![Aufbau](https://raw.githubusercontent.com/Pulsar07/ServoTester/master/doc/img/ServoTesterAufbau.jpg)
 
 </div>
 
@@ -109,7 +109,7 @@ diagram.
 
 <div class="image">
 
-![SchaltplanServoTester\_HW1.png](SchaltplanServoTester_HW1.png)
+![Schaltplan](https://raw.githubusercontent.com/Pulsar07/ServoTester/master/doc/img/SchaltplanServoTester_HW1.png)
 
 </div>
 
