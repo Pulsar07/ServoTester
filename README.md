@@ -28,7 +28,7 @@ Bau- und Einstellzeit des Modells zeigten sich keinerlei Probleme und
 sporadische HR-Tests waren immer erfolgreich. So kam mir die Idee einen
 [ServoTester](classServoTester.html "provides test and controlling functions for a combination of a RC-Servo and a optional mechanical cou...")
 zu bauen, der über einen längeren Zeitraum (2 Stunden) den Servo in
-unterschiedliche Positionen anfährt und die Servohebelposition
+unterschiedlichen Positionen anfährt und die Servohebelposition
 überprüft.
 
 # <span id="intro_sec_en" class="anchor"></span> Introduction
@@ -51,20 +51,17 @@ position was born.
 
 # <span id="concept_sec_de" class="anchor"></span> Konzept
 
-Die Konzeptidee ist sehr einfach. Der Mikrokontroller, sendet
-ordentliche PWM Servosignale (1.0us - 2.0us Impulse) an einem digitalen
-Ausgang. So kann der Servo gesteuert werden. Der
-Positions-Sensor/-Potentionmeter ist ein Spannungsteiler, dessen
-Spannung am Pin des beweglichen Teils eine Indikator für die Position
-ist. Der Arduino hat einige einfach ADSc (Auflösung 1024), die benutzt
-werden können um diese Spannung zu messen. Ein weiterer Spannungsteiler
-unterstützt als Sicherheitscheck eine
-Batterieunterspannungs-Warnung/-Abschaltung und 2 LED sorgen als
-einfache Status Melder. Die Logic ist als Arduino Sketch A separate
-voltage divider can provide a safety check for a battery low voltage
-warning/shutdown and 2 LEDs are used as simple status indication.
-Zusätzlich werden an der USB-Schnittstelle Textnachrichten ausgegeben.
-Die Verarbeitungslogik ist als Arduino Sketch in C++ hier hinterlegt.
+Die Konzeptidee ist sehr einfach. Der Mikrokontroller, erzeugt PWM
+Servosignale (1.0us - 2.0us Impulse) an einem digitalen Ausgang. So kann
+der Servo gesteuert werden. Der Positions-Sensor/-Potentionmeter ist ein
+Spannungsteiler, dessen Spannung am Pin des beweglichen Teils ein Maß
+für die Position ist. Der Arduino hat mehrere einfache ADCs (Auflösung
+1024), die benutzt werden können, um diese Spannung zu messen. Ein
+weiterer Spannungsteiler unterstützt als Sicherheitscheck eine
+Batterieunterspannungs-Warnung/-Abschaltung und 2 LEDs dienen als
+einfache Statusmelder. Zusätzlich werden an der USB-Schnittstelle
+Textnachrichten ausgegeben. Die Verarbeitungslogik ist als Arduino
+Sketch in C++ hier hinterlegt.
 
 # <span id="concept_sec_en" class="anchor"></span> Concept
 
@@ -82,19 +79,19 @@ given here.
 
 # <span id="hardware_sec_de" class="anchor"></span> Hardware
 
-Außer einem Arduino Nano, ist nicht viel notwendig. Zwei Status LEDs, um
-ein simple Benutzerinterface zu realisieren und ein hochwertiges Cermet
-Potentiometer, das als Positionssensor dient und mechanisch mit dem
-Servoarm des Servos verbunden ist. Dazu kommen noch ein paar Widerstände
-und ein Kondensator, wie im Schaltplan dargestellt.
+Außer einem Arduino Nano, ist nicht viel notwendig. Zwei Status LEDs
+(low current LED), um ein simples Benutzerinterface zu realisieren und
+ein hochwertiges Cermet Potentiometer, das als Positionssensor dient und
+mechanisch mit dem Servoarm des Servos verbunden ist. Dazu kommen noch
+ein paar Widerstände und ein Kondensator, wie im Schaltplan dargestellt.
 
 # <span id="hardware_sec_en" class="anchor"></span> Hardware
 
 in addition to the Arduino nano hardware only some electronic parts are
-needed to create a human machine interface (only 2 status LEDs) and a
-high quality potentiometer (Cermet precision potentiometer) is needed as
-a position sensor, which is mechanical connected to the RC-servo. Some
-resistors and a capacitor as shown in the circuit
+needed to create a human machine interface (only 2 status low current
+LEDs) and a high quality potentiometer (Cermet precision potentiometer)
+is needed as a position sensor, which is mechanical connected to the
+RC-servo. Some resistors and a capacitor as shown in the circuit
 diagram.
 
 # <span id="composition_sec" class="anchor"></span> Aufbau/Composition
@@ -190,11 +187,11 @@ Prüfungen.
 Der
 [ServoTester](classServoTester.html "provides test and controlling functions for a combination of a RC-Servo and a optional mechanical cou...")
 muss an eine 2s LiIon Batterie angeschlossen werden. Die Nutzung eines
-Labornetzgerätes ist sinnvoll, jedoch ist darauf zu achten, dass nicht
-mehr als 8.4V Spannung angelegt wird und dass die Stromstärke \<1A
-eingestellt wird, das beim Servo-Speed-Test hohe Ströme (je nach Servo)
-angefordert werden. Der Arduino Nano kann optional via der USB
-Schnittstelle mit einem PC verbunden werden, um neue Firmware auf den
+Labornetzgerätes ist möglich, jedoch ist darauf zu achten, dass nicht
+mehr als 8.4V Spannung angelegt wird und dass eine Stromstärke größer 1
+Ampere eingestellt wird, da beim Servo-Speed-Test hohe Ströme (je nach
+Servo) angefordert werden. Der Arduino Nano kann optional mit der USB
+Schnittstelle eines PC verbunden werden, um neue Firmware auf den
 Arduino zu laden oder um Textnachrichten an einen seriellen Monitor zu
 übertragen. Wenn die Batterie mit dem
 [ServoTester](classServoTester.html "provides test and controlling functions for a combination of a RC-Servo and a optional mechanical cou...")
