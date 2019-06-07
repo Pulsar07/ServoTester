@@ -16,16 +16,18 @@ a Arduino project to verify RC-servo function / ein Arduino Projekt zur
 
 Beim Erstflug eines 10kg Segler wurde das Modell plötzlich schneller.
 Steuerkorrekturen am HR-Hebel am Sender zeigten keinerlei Wirkung. Nach
-ca 20s verscchwand das Modell hinter der Hangkante. 3 Tage später konnte
+ca 20s verschwand das Modell hinter der Hangkante. 3 Tage später konnte
 das Modell aus 20m Höhe von einem Baumkletter geborgen werden. Da der
 Rumpf annähernd unbeschädigt war, konnte die Fehleranalyse beginnen und
-bald war klar, es war der HR Servo. Der Servo lief eigentlich ganz gut,
-aber zeite plötzlich Aussetzer. Ein Y-Kabel vom Empfänger-HR-Ausgang zum
-HR-Servo und zu einem zweiten Referenzservo brachte endgültige Klarheit.
-Der eingebaute HR-Servo zeite sporadische Aussetzer, die der
-Referenzservo nicht zeigte. Ein sehr unangenehmer Fehler. Während der
-Bau- und Einstellzeit des Modells zeigten sich keinerlei Probleme und
-sporadische HR-Tests waren immer erfolgreich. So kam mir die Idee einen
+bald war klar, es war der nagelneue HR-Servo. Der Servo lief in
+Post-Absturz-Tests eigentlich ganz gut, aber zeigte aber plötzlich
+Aussetzer. Ein Y-Kabel vom Empfänger-HR-Ausgang zum HR-Servo und zu
+einem zweiten Referenzservo brachte endgültige Klarheit. Der eingebaute
+HR-Servo zeite sporadische Aussetzer, die der Referenzservo nicht
+zeigte. Ein sehr unangenehmer Fehler. Während der Bau- und Einstellzeit
+des Modells zeigten sich keinerlei Probleme und sporadische HR-Tests
+waren immer erfolgreich. Auch während der ersten 69 Minunten
+Erstflugzeit, waren keine Probleme erkennbar. So kam mir die Idee einen
 [ServoTester](classServoTester.html "provides test and controlling functions for a combination of a RC-Servo and a optional mechanical cou...")
 zu bauen, der über einen längeren Zeitraum (2 Stunden) den Servo in
 unterschiedlichen Positionen anfährt und die Servohebelposition
