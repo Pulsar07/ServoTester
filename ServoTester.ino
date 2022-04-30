@@ -4,7 +4,7 @@
  /**
   * \brief Macro for defining the version string
   */
-#define SERVOTESTER_VERSION "V2.00"
+#define SERVOTESTER_VERSION "V2.20"
 
 // Version history
 // V1.03 : full functional initial version
@@ -21,6 +21,9 @@
 // V1.21 : - StatusLED with pause
 // V2.00 : - redesigned ServoTester.ino -> ServoTester.ino and class ServoTester
 //         - servo control has to be added later on
+// V2.10 : - Servo control added
+// V2.20 : - PWMfrequency variation added
+// V2.21 : - Build vor HW Version 1 fixed
 
 /**
  * \file ServoTester.ino
@@ -159,7 +162,7 @@
 
 #ifndef MODULE_TEST
 
-#define HWVersion 2
+#define HWVersion 1
 #if HWVersion == 1
   #define pinLedGreen  2 // D2
   #define pinLedYellow 9 // D3
@@ -167,7 +170,7 @@
   #define pinServoPWM  4 // D0
   #define pinControlSwitch 3
   #define pinPositionPoti A0
-  #define pinBatterySupervision A5
+  // #define pinBatterySupervision A5
 #elif HWVersion > 1
   #define pinLedGreen  2 // D2
   #define pinLedYellow 3 // D3
@@ -175,11 +178,12 @@
   #define pinServoPWM  6 // D6
   #define pinPositionPoti A4
   #define pinBatterySupervision A5
-  #define pinControlSwitch 3
+  #define pinCurrentSensor A6
+  #define pinControlSwitch 12
 #endif
 
 
-ServoTester* mTester = new ServoTester(pinServoPWM, pinPositionPoti, pinLedGreen, pinLedRed, SERVOTESTER_VERSION);
+ServoTester* mTester = new ServoTester(pinServoPWM, pinPositionPoti, pinLedGreen, pinLedRed);
 
 /**
  * \brief The setup() function is called when a sketch starts.
@@ -188,8 +192,17 @@ ServoTester* mTester = new ServoTester(pinServoPWM, pinPositionPoti, pinLedGreen
  * Here Serial port and ServoTester is initialised
  */
 void setup() {
-  Serial.begin(57600);
-  mTester->attachBatterySupervisionPin(pinBatterySupervision, 7200, 7000);
+  Serial.begin(115200);
+  Serial.print("ServoTester: ");
+  Serial.print(SERVOTESTER_VERSION);
+  Serial.println();
+  #ifdef pinBatterySupervision
+  mTester->initBatterySupervision(pinBatterySupervision, 7200, 7000);
+  #endif
+  mTester->initModeControl(pinControlSwitch);
+  #ifdef pinCurrentSensor
+  mTester->initCurrentSensor(pinCurrentSensor);
+  #endif
   mTester->setDefaultFunction(SERVO_TESTER_FUNC_POSITION_TEST);
   mTester->init();
 

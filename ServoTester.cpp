@@ -1,9 +1,9 @@
 #include "ServoTester.h"
 #include <avr/sleep.h>
 
-ServoTester::ServoTester(int8_t aServoPin, int8_t aPotiPin, int8_t aGreenLedPin, int8_t aRedLedPin, const char* aVersionString)
+ServoTester::ServoTester(int8_t aServoPin, int8_t aPotiPin, int8_t aGreenLedPin, int8_t aRedLedPin)
  : myBatterySupervisionPin(SERVO_TESTER_NOTUSED),
-   myControlPin(SERVO_TESTER_NOTUSED),
+   myModeControlPin(SERVO_TESTER_NOTUSED),
    myDefaultFunction(SERVO_TESTER_FUNC_POSITION_TEST)
 {
   myLedGreen = new StatusLED(aGreenLedPin);
@@ -12,7 +12,6 @@ ServoTester::ServoTester(int8_t aServoPin, int8_t aPotiPin, int8_t aGreenLedPin,
   myServoPin = aServoPin;
   myPotiPin = aPotiPin;
   myState = S_UNSET;
-  myVersionString = aVersionString;
 }
 
 void ServoTester::init() {
@@ -22,10 +21,10 @@ void ServoTester::init() {
   Serial.println();
   #endif
   Serial.print("ServoTester ");
-  Serial.print(myVersionString);
   Serial.print(" - Startup");
   Serial.println();
   // attaches the servo on pin to the servo object
+  Servo::setRefreshFreq(50);
   myServo->attach(myServoPin);
   pinMode(myPotiPin, INPUT);
   uint16_t usStep               = 500/4; // 25% Steps from as -125%,-100%,-75%,-50%,-25%,0%,25%,50%,75%,100%,125%
@@ -38,19 +37,22 @@ void ServoTester::init() {
   randomSeed(analogRead(-1)); // initializes the pseudo-random number generator
 
   // which function should be run
-  if (myControlPin != SERVO_TESTER_NOTUSED && digitalRead(myControlPin)) {
+  if (myModeControlPin != SERVO_TESTER_NOTUSED && !digitalRead(myModeControlPin)) {
     myDefaultFunction = SERVO_TESTER_FUNC_FOLLOWS_POTI;
-  }
-  if (myControlPin != SERVO_TESTER_NOTUSED && !digitalRead(myControlPin)) {
+  } else {
     myDefaultFunction = SERVO_TESTER_FUNC_POSITION_TEST;
   }
 
   switch (myDefaultFunction) {
-    case SERVO_TESTER_FUNC_FOLLOWS_POTI:
-      myInitDone = initServoFollowsPoti();
-      break;
     case SERVO_TESTER_FUNC_POSITION_TEST:
+      Serial.print("ServoTester - Mode-0 - Servo wird automatisch über Sensor überprüft");
+      Serial.println();
       myInitDone = initServoPositionTest();
+      break;
+    case SERVO_TESTER_FUNC_FOLLOWS_POTI:
+      Serial.print("ServoTest - Mode-1 - Servo wird über das Poti / den Sensor gesteuert");
+      Serial.println();
+      myInitDone = initServoFollowsPoti();
       break;
   }
 
@@ -62,7 +64,7 @@ bool ServoTester::initServoFollowsPoti() {
   Serial.print("initServoFollowsPoti()");
   Serial.println();
   #endif
-  return false;
+  return true;
 }
 
 void ServoTester::setState(ServoTester::State aState) {
@@ -126,8 +128,6 @@ bool ServoTester::initServoPositionTest() {
   Serial.println();
   #endif
   setState(S_INIT);
-  Serial.print("ServoTest - Mode 0 - Servo wird automatisch über Poti Position überprüft");
-  Serial.println();
 
   myServo->writeMicroseconds(1500);
   checkBatteryVoltage(0);
@@ -219,10 +219,16 @@ bool ServoTester::initServoPositionTest_CheckPosSensor() {
       myServo->writeMicroseconds(1450);
       delay(500);
       uint16_t lastSensorValue = 0;
-      for (int pos=1450; pos < 1551; pos+=10) {
+      for (int pos=1450; pos < 1551; pos+=20) {
         myServo->writeMicroseconds(pos);
         delay(100);
         uint16_t sensorValue = getServoPositionSensorValue();
+        Serial.print("DEBUG: Positionsensor: ");
+        Serial.print("");
+            Serial.print(pos);
+            Serial.print("/");
+            Serial.print(sensorValue);
+            Serial.println();
         if (abs(sensorValue - lastSensorValue) < 1) {
           sensorDoesNotMove++;
           if (sensorDoesNotMove > 5) {
@@ -330,9 +336,9 @@ void ServoTester::servoSpeedTest() {
   Serial.print("Servo Speedtest");
     Serial.print(" bei Batteriespannung: ");
     Serial.print(" Ubatt=");
-    char voltageString[15];
-    dtostrf(((float) getBatteryVoltage()/1000), 3, 1, voltageString);
-    Serial.print(voltageString);
+    char outString[15];
+    dtostrf(((float) getBatteryVoltage()/1000), 3, 1, outString);
+    Serial.print(outString);
     Serial.print("V");
   Serial.println();
 
@@ -516,9 +522,9 @@ void ServoTester::runServoPositionTest() {
     Serial.print(SERVO_TESTER_TEST_DURATION_IN_MIN);
     Serial.print("min): Batteriespannung: ");
     Serial.print(" Ubatt=");
-    char voltageString[15];
-    dtostrf(((float) getBatteryVoltage()/1000), 3, 1, voltageString);
-    Serial.print(voltageString);
+    char outString[15];
+    dtostrf(((float) getBatteryVoltage()/1000), 3, 1, outString);
+    Serial.print(outString);
     Serial.print("V");
     Serial.println();
     myTimeTicker = 0;
@@ -532,14 +538,17 @@ void ServoTester::runServoPositionTest() {
   if (time > myTimeTicker && (myTimeTicker/1000/60 < SERVO_TESTER_TEST_DURATION_IN_MIN)) {
     // will be printed once per minute
     ledShowResult();
+    toggleServoFrequency();
     myTimeTicker += 1000L*60;
     Serial.print(time/1000/60);
     Serial.print("min ");
     Serial.print("Test-Info:");
-    Serial.print(" Ubatt=");
-    char voltageString[5];
-    dtostrf(((float) getBatteryVoltage()/1000), 3, 1, voltageString);
-    Serial.print(voltageString);
+    Serial.print(" PWM-Freq=");
+    Serial.print(Servo::getRefreshFreq());
+    Serial.print("Hz Ubatt=");
+    char outString[5];
+    dtostrf(((float) getBatteryVoltage()/1000), 3, 1, outString);
+    Serial.print(outString);
     Serial.print("V #-Test-Sessions :");
     Serial.print(myTestCnt);
     Serial.print(" mit #-Messungen :");
@@ -561,7 +570,6 @@ void ServoTester::runServoPositionTest() {
 
   if (true) {
     ledShowResult();
-
 
     // random position test
     myServo->writeMicroseconds(1500);
@@ -698,10 +706,143 @@ void ServoTester::runServoFollowsPoti() {
   Serial.print("runServoFollowsPoti()");
   Serial.println();
   #endif
-  Serial.print("ServoTest - Mode 1 - Servo Position wird über Poti gesteuert");
-  Serial.println();
-}
+  delay(10);
+  static int servoPosInUs = 1500;
+  static int servoPosInPercent = 0;
+  static int calcUsPos    = 0;
 
+  int usStep               = 500/4; // 25% Steps from as -125%,-100%,-75%,-50%,-25%,0%,25%,50%,75%,100%,125%
+  int servoPosInUsMin      = 1000 - usStep;
+  int servoPosInUsMax      = 2000 + usStep;
+
+  int potiPosMin     = 220;
+  int potiPosMax     = 820;
+  int steps          = 11;
+  int potiSteps = (potiPosMax - potiPosMin)/(2*steps-1)+1;  // 29
+  int rangePotiPosMin;
+  int rangePotiPosMax;
+  int servoPosInUsRangeMin;
+  int servoPosInUsRangeMax;
+  int rangeIdx;
+  int potiPos = getPotiPostion();
+  for (int i=0; i < 2*steps-1; i++) {
+    rangeIdx = i;
+    // there are 11 snapped positions in 25% Steps from as -125%,-100%,-75%,-50%,-25%,0%,25%,50%,75%,100%,125%
+    // between the 11 snapped positions, there are 11-1 continuos regions
+    rangePotiPosMin = potiPosMin+i*potiSteps;  // 200,
+    rangePotiPosMax = rangePotiPosMin + potiSteps;
+    if (i%2 == 0) {
+      // snapped position handling
+      // Serial.print("snapped Range ");
+      int servoPosInUsSnapped  = servoPosInUsMin + i*usStep/2; // ~875, 1000, 1125, ...
+      if (rangePotiPosMin <= potiPos && potiPos <= rangePotiPosMax) {
+        servoPosInUs=servoPosInUsSnapped;
+        break;
+      }
+    } else {
+      // continuous position handling
+      // Serial.print("contin. Range ");
+      servoPosInUsRangeMin = servoPosInUsMin + (i-1)*usStep/2; // ~875, 1000, 1125, ...
+      servoPosInUsRangeMax = servoPosInUsRangeMin + usStep;
+      if (rangePotiPosMin <= potiPos && potiPos <= rangePotiPosMax) {
+        servoPosInUs =  map(potiPos, rangePotiPosMin, rangePotiPosMax, servoPosInUsRangeMin, servoPosInUsRangeMax);
+        break;
+      }
+    }
+    if (potiPos < potiPosMin) {
+      servoPosInUs = servoPosInUsMin;
+    }
+    if (potiPos > potiPosMax) {
+      servoPosInUs = servoPosInUsMax;
+    }
+
+    //   Serial.print("[");
+    //   Serial.print(i);
+    //   Serial.print("] ");
+    //   Serial.print(rangePotiPosMin);
+    //   Serial.print("-");
+    //   Serial.print(rangePotiPosMax);
+    //   Serial.println();
+  }
+
+  myServo->writeMicroseconds(servoPosInUs);
+  servoPosInPercent = map(servoPosInUs, 1000, 2000, -100, 100);
+  static int lastServoPosInPercent = -200;
+  static int lastPotiPos = -1;
+
+  static uint16_t  lastCurrent = 0;
+  int16_t  current =  getServoCurrent();
+  // if (servoPosInPercent != lastServoPosInPercent || abs(lastCurrent-current) > 10 ) {
+  if (servoPosInPercent != lastServoPosInPercent ) {
+    switch (servoPosInPercent) {
+    case 0:
+      myLedGreen->clearBlinkPattern();
+      myLedGreen->on();
+      break;
+    case 25:
+    case -25:
+      myLedGreen->blink(200, 1, 500, STATUS_LED_FOREVER);
+      break;
+    case 50:
+    case -50:
+      myLedGreen->blink(200, 2, 500, STATUS_LED_FOREVER);
+      break;
+    case 75:
+    case -75:
+      myLedGreen->blink(200, 3, 500, STATUS_LED_FOREVER);
+      break;
+    case 100:
+    case -100:
+      myLedGreen->blink(200, 4, 500, STATUS_LED_FOREVER);
+      break;
+    case 125:
+    case -125:
+      myLedGreen->blink(200, 5, 500, STATUS_LED_FOREVER);
+      break;
+      default:
+      myLedGreen->clearBlinkPattern();
+      myLedGreen->off();
+      break;
+    }
+  }
+  // if (servoPosInPercent != lastServoPosInPercent || abs(lastCurrent-current) > 10 ) {
+  if (abs( potiPos - lastPotiPos) > 1 ) { // }|| true  ) {
+    lastPotiPos = potiPos;
+    Serial.print(" Ubatt=");
+    char outString[15];
+    dtostrf(((float) getBatteryVoltage()/1000), 3, 1, outString);
+    Serial.print(outString);
+    Serial.print(" Iservo=");
+    sprintf(outString, "%03d", current);
+    Serial.print(outString);
+    Serial.print("mA Poti Position: ");
+    Serial.print(potiPos);
+    Serial.print(" Servo Pos: ");
+    Serial.print(servoPosInUs);
+    Serial.print("us / ");
+    Serial.print(servoPosInPercent);
+    Serial.print("% ");
+    if (rangeIdx%2 == 0) {
+      Serial.print(" snapp-");
+    } else {
+      Serial.print(" cont.-");
+    }
+    Serial.print(" Range [");
+    Serial.print(rangeIdx);
+    Serial.print("] ");
+    Serial.print(rangePotiPosMin);
+    Serial.print("-");
+    Serial.print(rangePotiPosMax);
+    if (rangeIdx%2 == 1) {
+      Serial.print(", ");
+      Serial.print(servoPosInUsRangeMin);
+      Serial.print("-");
+      Serial.print(servoPosInUsRangeMax);
+    }
+    Serial.println();
+    lastServoPosInPercent = servoPosInPercent;
+  }
+}
 
 void ServoTester::ledShowResult() {
   #if SERVO_TESTER_DEBUG > 2
@@ -746,7 +887,11 @@ void ServoTester::run() {
   }
 }
 
-void ServoTester::attachBatterySupervisionPin(int8_t aPin, uint16_t aWarningVoltage, uint16_t aErrorVoltage) {
+void ServoTester::initCurrentSensor(uint8_t aPin) {
+  myCurrentSensorPin = aPin;
+}
+
+void ServoTester::initBatterySupervision(uint8_t aPin, uint16_t aWarningVoltage, uint16_t aErrorVoltage) {
   myBatterySupervisionPin = aPin;
   myBatterySupervisionWarnVoltage = aWarningVoltage;
   myBatterySupervisionErrorVoltage = aErrorVoltage;
@@ -757,8 +902,19 @@ uint16_t ServoTester::getBatteryVoltage() {
   return (analogRead(myBatterySupervisionPin) / 1023.0) * V_REF * 2;
 }
 
-void ServoTester::attachControlPin(uint8_t aPin) {
-  myControlPin = aPin;
+uint16_t ServoTester::getServoCurrent() {
+  // get the current of the current sensor ACS712-05, given as analog voltage value
+  int16_t val = analogRead(myCurrentSensorPin);
+  val = val-511;
+  val = max(0, val);
+  val = abs(val) / 1023.0 * V_REF; // mV
+  // val = val/185.0; // 185mV per Amp
+  return val;
+}
+
+void ServoTester::initModeControl(uint8_t aPin) {
+  myModeControlPin = aPin;
+  pinMode(myModeControlPin, INPUT_PULLUP);
 }
 
 
@@ -766,9 +922,20 @@ void ServoTester::setDefaultFunction(uint8_t aFunction) {
   myDefaultFunction = aFunction;
 }
 
+void ServoTester::toggleServoFrequency() {
+  static int f = 50;
+  if (f > 100) f = 10;
+  Servo::setRefreshFreq(f);
+  f=f+10;
+}
+
 bool ServoTester::checkBatteryVoltage(uint8_t aRepeat) {
   uint8_t batteryLowCnt=0;
   uint8_t batteryWarnCnt=0;
+
+  if (myBatterySupervisionPin == SERVO_TESTER_NOTUSED) {
+    return true;
+  }
 
   uint16_t voltage = getBatteryVoltage();
   if (voltage < SERVO_TESTER_BATT_STOP_LEVEL) {
@@ -777,11 +944,11 @@ bool ServoTester::checkBatteryVoltage(uint8_t aRepeat) {
       Serial.print("Achtung !!");
       Serial.println();
       Serial.print("ERROR: Versorgungsspannung zu niedrig: ");
-      char voltageString[15];
+      char outString[15];
       Serial.print(voltage);
       Serial.print("mV/");
-      dtostrf(((float) voltage/1000), 3, 1, voltageString);
-      Serial.print(voltageString);
+      dtostrf(((float) getBatteryVoltage()/1000), 3, 1, outString);
+      Serial.print(outString);
       Serial.print("V");
       Serial.println();
       Serial.print("Testfunktion wird deaktiviert");
